@@ -1,0 +1,84 @@
+<?xml version="1.0" encoding="utf-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xmlns:tx="http://www.springframework.org/schema/tx"
+	xmlns:util="http://www.springframework.org/schema/util"
+	xmlns:context="http://www.springframework.org/schema/context"
+	xmlns:aop="http://www.springframework.org/schema/aop"
+	xmlns:cache="http://www.springframework.org/schema/cache"
+	xmlns:jdbc="http://www.springframework.org/schema/jdbc"
+	xmlns:mybatis-spring="http://mybatis.org/schema/mybatis-spring"
+	xmlns:mvc="http://www.springframework.org/schema/mvc"
+	xmlns:lang="http://www.springframework.org/schema/lang"
+	xsi:schemaLocation="http://www.springframework.org/schema/jdbc http://www.springframework.org/schema/jdbc/spring-jdbc-4.3.xsd
+		http://www.springframework.org/schema/cache http://www.springframework.org/schema/cache/spring-cache-4.3.xsd
+		http://mybatis.org/schema/mybatis-spring http://mybatis.org/schema/mybatis-spring-1.2.xsd
+		http://www.springframework.org/schema/mvc http://www.springframework.org/schema/mvc/spring-mvc-4.3.xsd
+		http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-4.3.xsd
+		http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context-4.3.xsd
+		http://www.springframework.org/schema/lang http://www.springframework.org/schema/lang/spring-lang-4.3.xsd
+		http://www.springframework.org/schema/aop http://www.springframework.org/schema/aop/spring-aop-4.3.xsd
+		http://www.springframework.org/schema/tx http://www.springframework.org/schema/tx/spring-tx-4.3.xsd
+		http://www.springframework.org/schema/util http://www.springframework.org/schema/util/spring-util-4.3.xsd">
+
+	<bean id="propertyConfigurer" class="org.springframework.beans.factory.config.PropertyPlaceholderConfigurer">
+		<property name="locations">
+			<list>
+				<value>classpath:/config/db/db.properties</value>
+			</list>
+		</property>
+	</bean>
+
+	<!-- Root Context: defines shared resources visible to all other web components -->
+	<bean id="dataSourceMySQL" class="org.apache.commons.dbcp2.BasicDataSource">
+		<property name="driverClassName" value="${jdbc.driverClassName}" />
+		<property name="url" value="${jdbc.url}"></property>
+		<property name="username" value="${jdbc.username}"></property>
+		<property name="password" value="${jdbc.password}"></property>
+		
+		<property name="defaultAutoCommit" value="${jdbc.autocommit}" />
+		<property name="poolPreparedStatements" value="${jdbc.poolpreparedstatements}"/>
+		<!-- property name="maxOpenPreparedStatements" value="100"/--> <!-- (connections 수 * maxOpenPreparedStatements) -->		 
+		
+		<property name="initialSize"      value="${jdbc.initialsize}"/>
+		<property name="maxTotal"         value="${jdbc.maxtotal}"/>
+		<property name="minIdle"          value="${jdbc.minidle}"/>
+		<property name="maxWaitMillis"    value="${jdbc.maxwaitmillis}"/> <!-- 10초 -->
+		
+		<property name="testOnBorrow"    value="${jdbc.testonborrow}"/>
+		<property name="testOnReturn"    value="${jdbc.testonreturn}"/>
+		<property name="testWhileIdle"   value="${jdbc.testwhileidle}"/>
+		<property name="validationQuery" value="${jdbc.validationqurey}" />
+		<property name="connectionProperties" value="defaultRowPrefetch=200" />
+	</bean>
+
+	<bean id="log4jMySQLDataSource" class="net.sf.log4jdbc.Log4jdbcProxyDataSource">
+		<constructor-arg ref="dataSourceMySQL" />
+		<property name="logFormatter">
+			<bean class="net.sf.log4jdbc.tools.Log4JdbcCustomFormatter">
+				<property name="loggingType" value="MULTI_LINE" />
+				<property name="sqlPrefix" value="[SQL:::] " />
+			</bean>
+		</property>
+	</bean>
+
+	<bean id="sqlSessionFactoryMySQL" class="org.mybatis.spring.SqlSessionFactoryBean">
+		<property name="dataSource" ref="dataSourceMySQL" />
+		<property name="configLocation" value="classpath:/config/mybatis-config.xml" />
+		<!-- 
+		<property name="mapperLocations" value="classpath:/config/sqlmaps/*.xml" />
+		 -->
+ 	</bean>
+
+	<bean id="sqlSessionMySQL" class="org.mybatis.spring.SqlSessionTemplate" destroy-method="clearCache">
+		<constructor-arg name="sqlSessionFactory" ref="sqlSessionFactoryMySQL" />
+	</bean>
+
+	<bean id="transactionManager" class="org.springframework.jdbc.datasource.DataSourceTransactionManager">
+		<property name="dataSource" ref="dataSourceMySQL" />
+	</bean>
+	
+	<tx:annotation-driven />
+	
+	<context:component-scan base-package="com.vitamin.*" />
+</beans>
